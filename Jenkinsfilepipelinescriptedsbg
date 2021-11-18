@@ -1,0 +1,45 @@
+node{
+    
+    def mavenhome=tool name : "maven 3.8.3"
+    
+    timestamps {
+    }
+    
+    //echo "GitHub BranhName ${env.BRANCH_NAME}"
+  //echo "Jenkins Job Number ${env.BUILD_NUMBER}"
+  echo "Jenkins Node Name ${env.NODE_NAME}"
+  
+  echo "Jenkins Home ${env.JENKINS_HOME}"
+  echo "Jenkins URL ${env.JENKINS_URL}"
+  echo "JOB Name ${env.JOB_NAME}"
+    
+    stage('checkout code'){
+        git branch: 'development', credentialsId: '735f8fe6-2540-4e84-90b3-4f6ff108cee8', url: 'https://github.com/xita-satven/maven-web-application.git'
+    }
+    
+    stage('build'){
+        sh "${mavenhome}/bin/mvn package"
+    }
+    
+    stage('execute sonarqube report'){
+      sh "${mavenhome}/bin/mvn sonar:sonar"  
+    }
+    
+    
+    stage('to upload into nexus repo'){
+        sh "${mavenhome}/bin/mvn clean deploy"
+    }  
+
+    
+    stage ('Deploy into tomcat'){
+       sshagent(['13cbcb31-bff8-4958-923f-c71ee5313933']) {
+       sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@15.206.94.93:/opt/apache-tomcat-9.0.54/webapps/"
+    }
+    }
+     stage ('send an email'){
+         emailext body: '''build successfull ,
+
+         Regards,
+         Sachin''', subject: 'Build success', to: 'devsachinbg@gmail.com'
+     }
+}
