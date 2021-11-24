@@ -1,1 +1,53 @@
-
+pipeline{
+    
+    agent any
+    
+    tools {
+        maven 'maven 3.8.3'
+    }//tools
+    
+    options{
+        timestamps()
+        
+        }//options
+    
+       
+    
+    stages{
+        stage('checkout code'){
+            steps{
+                git branch: 'development', credentialsId: '735f8fe6-2540-4e84-90b3-4f6ff108cee8', url: 'https://github.com/xita-satven/maven-web-application.git'
+            }//steps
+        }//code stage
+        
+        
+        stage('Build'){
+            steps{
+              sh "mvn clean package"  
+            }//steps
+            
+        }//buildstage
+        
+        stage('Execute sonarQube report'){
+            steps{
+                sh "mvn sonar:sonar"
+            }
+        }
+        
+        stage('upload into artifact repo'){
+            steps{
+                sh "mvn deploy"
+            }
+        }
+        
+        stage('Deploy into Tomcat'){
+            steps{
+                sshagent(['13cbcb31-bff8-4958-923f-c71ee5313933']){
+                    sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@15.206.94.93:/opt/apache-tomcat-9.0.54/webapps/"
+                }
+            }
+        }
+    
+    }//stages
+    
+}//pipeline
